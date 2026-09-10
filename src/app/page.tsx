@@ -114,8 +114,21 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingId) {
-      // Opt: In real app you should make a PUT request to update
-      setJobs(jobs.map(j => j.id === editingId ? { ...formData, id: editingId } : j));
+      try {
+        const res = await fetch(`/api/quests/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+        if (res.ok) {
+          // Refresh list
+          const fetchRes = await fetch('/api/quests');
+          const data = await fetchRes.json();
+          setJobs(data);
+        }
+      } catch (err) {
+        console.error("Failed to update", err);
+      }
     } else {
       try {
         const res = await fetch('/api/quests', {
@@ -124,13 +137,13 @@ export default function Home() {
           body: JSON.stringify(formData)
         });
         if (res.ok) {
-          // Re-fetch or add to UI optimistically
+          // Refresh list
           const fetchRes = await fetch('/api/quests');
           const data = await fetchRes.json();
           setJobs(data);
         }
       } catch (err) {
-        console.error(err);
+        console.error("Failed to add", err);
       }
     }
     setIsModalOpen(false);
@@ -138,8 +151,23 @@ export default function Home() {
 
   const handleDelete = async (id: number) => {
     if (window.confirm("Yakin ingin menghapus job ini?")) {
-      // Opt: In real app you should make a DELETE request
+      // Optimistic update for better UX
+      const prevJobs = [...jobs];
       setJobs(jobs.filter(j => j.id !== id));
+      
+      try {
+        const res = await fetch(`/api/quests/${id}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) {
+          // Rollback if failed
+          setJobs(prevJobs);
+          alert("Gagal menghapus data dari server");
+        }
+      } catch (err) {
+        console.error("Failed to delete", err);
+        setJobs(prevJobs);
+      }
     }
   };
 
