@@ -43,21 +43,22 @@ export default function Home() {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem('anggiJobsModernFinal');
-    if (saved) {
-      setJobs(JSON.parse(saved));
-    } else {
-      setJobs(defaultJobs);
-      localStorage.setItem('anggiJobsModernFinal', JSON.stringify(defaultJobs));
-    }
-    setMounted(true);
+    const fetchJobs = async () => {
+      try {
+        const res = await fetch('/api/quests');
+        if (res.ok) {
+          const data = await res.json();
+          setJobs(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch jobs", err);
+        // Fallback
+        setJobs(defaultJobs);
+      }
+      setMounted(true);
+    };
+    fetchJobs();
   }, []);
-
-  useEffect(() => {
-    if (mounted) {
-      localStorage.setItem('anggiJobsModernFinal', JSON.stringify(jobs));
-    }
-  }, [jobs, mounted]);
 
   const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -110,19 +111,34 @@ export default function Home() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingId) {
+      // Opt: In real app you should make a PUT request to update
       setJobs(jobs.map(j => j.id === editingId ? { ...formData, id: editingId } : j));
     } else {
-      const newId = jobs.length > 0 ? Math.max(...jobs.map(j => j.id)) + 1 : 1;
-      setJobs([{ ...formData, id: newId }, ...jobs]);
+      try {
+        const res = await fetch('/api/quests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+        if (res.ok) {
+          // Re-fetch or add to UI optimistically
+          const fetchRes = await fetch('/api/quests');
+          const data = await fetchRes.json();
+          setJobs(data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
     setIsModalOpen(false);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm("Yakin ingin menghapus job ini?")) {
+      // Opt: In real app you should make a DELETE request
       setJobs(jobs.filter(j => j.id !== id));
     }
   };

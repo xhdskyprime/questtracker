@@ -1,0 +1,8 @@
+name = "questtracker"
+compatibility_date = "2024-03-20"
+pages_build_output_dir = "out"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "questtracker_db"
+database_id = "96ad6728-0f1f-4b9f-ad3f-246db3382efb"
